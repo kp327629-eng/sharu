@@ -1,0 +1,6 @@
+{
+  "name": "VoyageAI - Travel Genius AI",
+  "description": "The ultimate international AI travel companion with luxury dark glass UI, dynamic itinerary engine, live Leaflet route mapping, smart budgeting, offline weather insights, passkey biometrics, and 24/7 AI travel concierge.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
