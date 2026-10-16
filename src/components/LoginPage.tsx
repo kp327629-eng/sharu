@@ -104,7 +104,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     const trimmedPass = password.trim();
 
     if (!trimmedUser) {
-      setErrorMessage("Please enter your assigned VIP username.");
+      setErrorMessage("Please enter your assigned VIP username or email.");
       setShakeError(true);
       setTimeout(() => setShakeError(false), 600);
       return;
@@ -429,7 +429,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       htmlFor="vip-username"
                       className="text-[11px] font-bold uppercase tracking-wider text-white/70 block"
                     >
-                      VIP Explorer Username
+                      VIP Explorer Username / Email
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
@@ -440,7 +440,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Enter VIP username"
+                        placeholder="Enter VIP username or email"
                         autoCapitalize="none"
                         autoCorrect="off"
                         spellCheck="false"

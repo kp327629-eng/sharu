@@ -39,9 +39,11 @@ const AUTH_SALT = process.env.AUTH_SALT || "eba9b7c4ac3cade80a5b385b65fa1545";
 const AUTH_PASS_HASH =
   process.env.AUTH_PASS_HASH ||
   "0aaf3c1113b2be752e135ab49d909445998d5a475b6d243960f3c73c28715d2b2078b3a02a0d9670586466ab99d67d2358ea091c3aa320fde4e1b8e7b5f9cadf";
-const AUTH_USER_HASH =
-  process.env.AUTH_USER_HASH ||
-  "1e77e16a40acf298afde55fc2f87329c6aec55e96563c89b758559f0eb4e036a";
+// Cryptographic SHA-256 hashes for authorized VIP usernames (normalized uppercase)
+const AUTH_USER_HASHES = [
+  process.env.AUTH_USER_HASH || "a8a8fd1c420a587d09f3aaff3ae3a874f49773f0005b9e8d02ae84520b7cff22", // Primary authorized VIP hash
+  "1e77e16a40acf298afde55fc2f87329c6aec55e96563c89b758559f0eb4e036a", // Secondary authorized VIP hash
+];
 
 // Rate limiting & Brute Force protection for login attempts
 interface RateLimitRecord {
@@ -112,13 +114,16 @@ function verifyCredentials(userCandidate: string, passCandidate: string): boolea
       .toString("hex");
 
     const userBuffer = Buffer.from(candidateUserHash);
-    const targetUserBuffer = Buffer.from(AUTH_USER_HASH);
+    const isUserValid = AUTH_USER_HASHES.some((targetHash) => {
+      const targetUserBuffer = Buffer.from(targetHash);
+      return (
+        userBuffer.length === targetUserBuffer.length &&
+        crypto.timingSafeEqual(userBuffer, targetUserBuffer)
+      );
+    });
+
     const passBuffer = Buffer.from(candidatePassHash);
     const targetPassBuffer = Buffer.from(AUTH_PASS_HASH);
-
-    const isUserValid =
-      userBuffer.length === targetUserBuffer.length &&
-      crypto.timingSafeEqual(userBuffer, targetUserBuffer);
 
     const isPassValid =
       passBuffer.length === targetPassBuffer.length &&
@@ -208,8 +213,18 @@ app.post("/api/auth/login", (req, res) => {
   const expiresAt = now + duration;
 
   const sanitizedUser = username.trim();
-  const displayName =
-    sanitizedUser.charAt(0).toUpperCase() + sanitizedUser.slice(1).toLowerCase();
+  let displayName = "Sarulatha";
+  if (sanitizedUser.includes("@")) {
+    const localPart = sanitizedUser.split("@")[0];
+    if (localPart.toLowerCase().startsWith("sarulatha")) {
+      displayName = "Sarulatha";
+    } else {
+      displayName = localPart.charAt(0).toUpperCase() + localPart.slice(1);
+    }
+  } else {
+    displayName =
+      sanitizedUser.charAt(0).toUpperCase() + sanitizedUser.slice(1).toLowerCase();
+  }
 
   const session: SessionRecord = {
     token,

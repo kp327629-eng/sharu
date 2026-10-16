@@ -241,7 +241,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 htmlFor="modal-username"
                 className="text-[11px] font-bold uppercase tracking-wider text-white/70 block"
               >
-                VIP Username
+                VIP Username / Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
@@ -252,7 +252,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your VIP username"
+                  placeholder="Enter your VIP username or email"
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck="false"

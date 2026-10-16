@@ -218,7 +218,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div>
                 <p className="font-bold text-xs text-white">VIP Explorer Authentication</p>
                 <p className="text-[10px] text-white/50">
-                  {prefs.isVip || prefs.name?.toLowerCase() === "sharu"
+                  {prefs.isVip || prefs.name?.toLowerCase() === "sarulatha" || prefs.name?.toLowerCase() === "sharu"
                     ? "Authenticated VIP Session • Master Travel Intelligence Active"
                     : "VIP Sovereign Portal • Sign in with your assigned VIP credentials"}
                 </p>
@@ -231,7 +231,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }}
                 className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all shrink-0"
               >
-                {prefs.isVip || prefs.name?.toLowerCase() === "sharu" ? "VIP Dashboard" : "VIP Sign In"}
+                {prefs.isVip || prefs.name?.toLowerCase() === "sarulatha" || prefs.name?.toLowerCase() === "sharu" ? "VIP Dashboard" : "VIP Sign In"}
               </button>
             </div>
           )}

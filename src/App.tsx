@@ -31,7 +31,7 @@ export default function App() {
   const [prefs, setPrefs] = useState<UserPreferences>(() => {
     const saved = localStorage.getItem("aetheria_user_prefs");
     const defaultUser = {
-      name: "Sharu",
+      name: "Sarulatha",
       travelStyle: "Explorer",
       budgetTier: "Balanced",
       currency: "USD",

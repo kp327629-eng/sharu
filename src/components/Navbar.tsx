@@ -56,7 +56,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSignOut,
 }) => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const isUserVip = Boolean(isVipAuthenticated || prefs.name?.toLowerCase() === "sharu" || prefs.isVip);
+  const isUserVip = Boolean(
+    isVipAuthenticated ||
+    prefs.isVip ||
+    prefs.name?.toLowerCase() === "sarulatha" ||
+    prefs.name?.toLowerCase() === "sharu"
+  );
 
   return (
     <header className="sticky top-4 z-40 px-4 sm:px-8 max-w-7xl mx-auto w-full transition-all duration-300">

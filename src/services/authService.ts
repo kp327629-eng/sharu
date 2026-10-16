@@ -44,8 +44,10 @@ const RATE_LIMIT_KEY = "voyage_auth_rate_limit";
 const AUTH_SALT = "eba9b7c4ac3cade80a5b385b65fa1545";
 const AUTH_PASS_HASH =
   "0aaf3c1113b2be752e135ab49d909445998d5a475b6d243960f3c73c28715d2b2078b3a02a0d9670586466ab99d67d2358ea091c3aa320fde4e1b8e7b5f9cadf";
-const AUTH_USER_HASH =
-  "1e77e16a40acf298afde55fc2f87329c6aec55e96563c89b758559f0eb4e036a";
+const AUTH_USER_HASHES = [
+  "a8a8fd1c420a587d09f3aaff3ae3a874f49773f0005b9e8d02ae84520b7cff22", // Primary authorized VIP hash
+  "1e77e16a40acf298afde55fc2f87329c6aec55e96563c89b758559f0eb4e036a", // Secondary authorized VIP hash
+];
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
@@ -115,7 +117,7 @@ class AuthService {
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
 
-      if (userHex !== AUTH_USER_HASH) {
+      if (!AUTH_USER_HASHES.includes(userHex)) {
         return false;
       }
 
@@ -329,8 +331,18 @@ class AuthService {
       // Valid credentials verified via Web Crypto enclave!
       this.clearClientRateLimit();
       const token = this.generateSecureClientToken();
-      const displayName =
-        trimmedUser.charAt(0).toUpperCase() + trimmedUser.slice(1).toLowerCase();
+      let displayName = "Sarulatha";
+      if (trimmedUser.includes("@")) {
+        const localPart = trimmedUser.split("@")[0];
+        if (localPart.toLowerCase().startsWith("sarulatha")) {
+          displayName = "Sarulatha";
+        } else {
+          displayName = localPart.charAt(0).toUpperCase() + localPart.slice(1);
+        }
+      } else {
+        displayName =
+          trimmedUser.charAt(0).toUpperCase() + trimmedUser.slice(1).toLowerCase();
+      }
 
       const user: AuthUser = {
         displayName,
