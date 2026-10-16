@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { UserPreferences, TripItinerary, DestinationCardData } from "./types";
-import { Navbar } from "./components/Navbar";
+import { Navbar, ViewType } from "./components/Navbar";
 import { HeroSearch } from "./components/HeroSearch";
 import { ExploreGrid } from "./components/ExploreGrid";
 import { ItineraryView } from "./components/ItineraryView";
@@ -13,8 +13,10 @@ import { TripPlannerModal } from "./components/TripPlannerModal";
 import { AiConciergeDrawer } from "./components/AiConciergeDrawer";
 import { AuthModal } from "./components/AuthModal";
 import { SettingsModal } from "./components/SettingsModal";
+import { LoginPage } from "./components/LoginPage";
 import { Sparkles, Bot, ArrowRight, Bookmark, Compass, MapPin, Download, Check, X } from "lucide-react";
 import { generatePlaceReportPDF, createTripItineraryFromPlace } from "./utils/generatePlaceReportPDF";
+import { authService } from "./services/authService";
 
 export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -22,29 +24,30 @@ export default function App() {
     return saved ? JSON.parse(saved) : true;
   });
 
-  const [prefs, setPrefs] = useState<UserPreferences>(() => {
-    const saved = localStorage.getItem("aetheria_user_prefs");
-    return saved
-      ? JSON.parse(saved)
-      : {
-          name: "Alex",
-          travelStyle: "Explorer",
-          budgetTier: "Balanced",
-          currency: "USD",
-          language: "English",
-          country: "USA",
-          foodPreference: "Local Specialties & Everything",
-          travelFrequency: "Frequent",
-          dreamDestinations: ["Kyoto, Japan", "Amalfi Coast, Italy"],
-          accessibility: false,
-          interests: ["Landmarks", "Food", "Culture"],
-          isOnboarded: false,
-        };
+  const [isVipAuth, setIsVipAuth] = useState<boolean>(() => {
+    return authService.isAuthenticated();
   });
 
-  const [currentView, setCurrentView] = useState<
-    "home" | "explore" | "saved" | "budget" | "weather" | "itinerary" | "booking"
-  >("home");
+  const [prefs, setPrefs] = useState<UserPreferences>(() => {
+    const saved = localStorage.getItem("aetheria_user_prefs");
+    const defaultUser = {
+      name: "Sharu",
+      travelStyle: "Explorer",
+      budgetTier: "Balanced",
+      currency: "USD",
+      language: "English",
+      country: "USA",
+      foodPreference: "Local Specialties & Everything",
+      travelFrequency: "Frequent",
+      dreamDestinations: ["Kyoto, Japan", "Amalfi Coast, Italy"],
+      accessibility: false,
+      interests: ["Landmarks", "Food", "Culture"],
+      isOnboarded: false,
+    };
+    return saved ? JSON.parse(saved) : defaultUser;
+  });
+
+  const [currentView, setCurrentView] = useState<ViewType>("home");
 
   const [savedTrips, setSavedTrips] = useState<TripItinerary[]>(() => {
     const saved = localStorage.getItem("aetheria_saved_trips");
@@ -80,6 +83,18 @@ export default function App() {
     }
     localStorage.setItem("aetheria_dark_mode", JSON.stringify(darkMode));
   }, [darkMode]);
+
+  // Verify server-side session token on startup
+  useEffect(() => {
+    authService.verifySession().then((user) => {
+      if (user && user.isVip) {
+        setIsVipAuth(true);
+        setPrefs((prev) => ({ ...prev, name: user.displayName || "VIP Explorer", isVip: true }));
+      } else {
+        setIsVipAuth(false);
+      }
+    });
+  }, []);
 
   // Sync user preferences
   const handleSavePreferences = (newPrefs: UserPreferences) => {
@@ -150,6 +165,34 @@ export default function App() {
     setIsPlannerOpen(true);
   };
 
+  // VIP Authentication handlers
+  const handleLoginSuccess = (userName: string, isVip?: boolean) => {
+    const vip = Boolean(isVip);
+    setIsVipAuth(vip);
+    const updated = { ...prefs, name: userName, isVip: vip };
+    handleSavePreferences(updated);
+    if (currentView === "login") {
+      setCurrentView("home");
+    }
+  };
+
+  const handleSignOut = async () => {
+    await authService.logout();
+    setIsVipAuth(false);
+    const updated = { ...prefs, name: "Explorer", isVip: false };
+    handleSavePreferences(updated);
+  };
+
+  // If in dedicated full-page Login view
+  if (currentView === "login") {
+    return (
+      <LoginPage
+        onLoginSuccess={handleLoginSuccess}
+        onBackToApp={() => setCurrentView("home")}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans transition-colors duration-300 pb-20 md:pb-8 flex flex-col justify-between">
       <div>
@@ -167,6 +210,8 @@ export default function App() {
           darkMode={darkMode}
           setDarkMode={setDarkMode}
           hasActiveItinerary={Boolean(activeTrip)}
+          isVipAuthenticated={isVipAuth}
+          onSignOut={handleSignOut}
         />
 
         {/* VIEW 1: HOME */}
@@ -329,8 +374,12 @@ export default function App() {
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
-        onLoginSuccess={(name) => {
-          handleSavePreferences({ ...prefs, name });
+        onLoginSuccess={(name, isVip) => {
+          handleLoginSuccess(name, isVip);
+        }}
+        onNavigateToFullLoginPage={() => {
+          setIsAuthOpen(false);
+          setCurrentView("login");
         }}
       />
 
@@ -342,6 +391,7 @@ export default function App() {
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        onOpenLogin={() => setCurrentView("login")}
       />
 
       {/* Floating Toast Notification when Place Report PDF is Generated & Downloaded */}

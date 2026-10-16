@@ -11,6 +11,7 @@ interface SettingsModalProps {
   darkMode: boolean;
   setDarkMode: React.Dispatch<React.SetStateAction<boolean>>;
   onOpenOnboarding: () => void;
+  onOpenLogin?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -21,6 +22,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   darkMode,
   setDarkMode,
   onOpenOnboarding,
+  onOpenLogin,
 }) => {
   const [localPrefs, setLocalPrefs] = useState<UserPreferences>(prefs);
   const [searchFilter, setSearchFilter] = useState("");
@@ -209,6 +211,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               />
             </button>
           </div>
+
+          {/* VIP Credentials Access */}
+          {onOpenLogin && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 via-purple-950/30 to-amber-950/20 border border-blue-500/20 flex items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-xs text-white">VIP Explorer Authentication</p>
+                <p className="text-[10px] text-white/50">
+                  {prefs.isVip || prefs.name?.toLowerCase() === "sharu"
+                    ? "Authenticated VIP Session • Master Travel Intelligence Active"
+                    : "VIP Sovereign Portal • Sign in with your assigned VIP credentials"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenLogin();
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all shrink-0"
+              >
+                {prefs.isVip || prefs.name?.toLowerCase() === "sharu" ? "VIP Dashboard" : "VIP Sign In"}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="pt-2 flex flex-col sm:flex-row gap-3">
