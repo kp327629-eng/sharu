@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Sparkles, X, Send, Bot, User, MessageSquare, Compass, RefreshCw } from "lucide-react";
 import { ChatMessage, TripItinerary } from "../types";
+import { chatWithConcierge } from "../services/tripService";
 
 interface AiConciergeDrawerProps {
   isOpen: boolean;
@@ -55,33 +56,25 @@ export const AiConciergeDrawer: React.FC<AiConciergeDrawerProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/ai-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: query,
-          tripContext: activeTrip,
-        }),
-      });
-
-      const data = await response.json();
+      const reply = await chatWithConcierge(query, activeTrip);
 
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: "ai",
-        text: data.reply || "I am currently adjusting your request. How else can I assist?",
+        text: reply || "I am currently adjusting your request. How else can I assist?",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
 
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
-      console.error(err);
+      console.warn("[VoyageAI Concierge] Local fallback active:", err);
+      const fallbackReply = await chatWithConcierge(query, activeTrip);
       setMessages((prev) => [
         ...prev,
         {
-          id: `ai-err-${Date.now()}`,
+          id: `ai-${Date.now()}`,
           sender: "ai",
-          text: "I am having trouble connecting to network services. Please check connection.",
+          text: fallbackReply,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);

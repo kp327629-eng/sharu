@@ -426,21 +426,35 @@ Provide ${durationDays} days of plans, each day having 3-4 detailed schedule ite
 `;
 
     if (ai) {
-      try {
-        const response = await ai.models.generateContent({
-          model: "gemini-3.6-flash",
-          contents: promptText,
-          config: {
-            responseMimeType: "application/json",
-            temperature: 0.7,
-          },
-        });
+      const modelsToTry = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-flash-latest"];
+      for (const model of modelsToTry) {
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: promptText,
+            config: {
+              responseMimeType: "application/json",
+              temperature: 0.7,
+            },
+          });
 
-        const rawText = response.text || "";
-        const tripData = JSON.parse(rawText);
-        return res.json({ success: true, trip: tripData, source: "gemini" });
-      } catch (geminiErr: any) {
-        console.warn("Gemini API call failed, falling back to smart dynamic generator:", geminiErr?.message);
+          const rawText = response.text || "";
+          const cleanedText = rawText
+            .replace(/^```json\s*/i, "")
+            .replace(/^```\s*/i, "")
+            .replace(/```\s*$/i, "")
+            .trim();
+          const tripData = JSON.parse(cleanedText);
+          if (!tripData.coverImage) {
+            tripData.coverImage =
+              destination.toLowerCase().includes("kyoto")
+                ? "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80"
+                : "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80";
+          }
+          return res.json({ success: true, trip: tripData, source: `gemini-${model}` });
+        } catch (geminiErr: any) {
+          console.warn(`Gemini API call with ${model} failed, trying next:`, geminiErr?.message);
+        }
       }
     }
 
@@ -468,24 +482,27 @@ app.post("/api/ai-chat", async (req, res) => {
     const ai = getGeminiClient();
 
     if (ai) {
-      try {
-        const systemPrompt = `You are Aetheria AI, an elite 24/7 personal travel concierge inspired by Apple elegance and Google Travel intelligence.
+      const chatModels = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-flash-latest"];
+      const systemPrompt = `You are Aetheria AI, an elite 24/7 personal travel concierge inspired by Apple elegance and Google Travel intelligence.
 Context of user's trip:
 ${tripContext ? JSON.stringify(tripContext, null, 2) : "No active trip loaded."}
 
 Answer the user's travel question with warmth, hyper-relevant insider travel tips, bullet points where helpful, pricing estimates, local etiquette, and actionable advice. Keep response clean, elegant, and beautifully formatted with markdown.`;
 
-        const response = await ai.models.generateContent({
-          model: "gemini-3.6-flash",
-          contents: `${systemPrompt}\n\nUser Question: ${message}`,
-          config: {
-            temperature: 0.7,
-          },
-        });
+      for (const model of chatModels) {
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: `${systemPrompt}\n\nUser Question: ${message}`,
+            config: {
+              temperature: 0.7,
+            },
+          });
 
-        return res.json({ success: true, reply: response.text });
-      } catch (geminiErr: any) {
-        console.warn("Gemini Chat failed, falling back:", geminiErr?.message);
+          return res.json({ success: true, reply: response.text });
+        } catch (geminiErr: any) {
+          console.warn(`Gemini Chat with ${model} failed, trying next:`, geminiErr?.message);
+        }
       }
     }
 
@@ -589,6 +606,9 @@ function generateFallbackTrip(params: any) {
     destination: dest,
     country: baseCoord.country,
     tagline: baseCoord.tag,
+    coverImage: dest.toLowerCase().includes("kyoto")
+      ? "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80"
+      : "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80",
     overview: `Experience the finest curated journey through ${dest}. From sunrise coffee walks in historical quarters to world-class dining, this itinerary is tailored to your travel style and preferences.`,
     weatherForecast: {
       avgTemp: "21°C / 70°F",

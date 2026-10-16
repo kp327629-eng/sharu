@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Sparkles, X, Calendar, Users, DollarSign, Compass, Utensils, Hotel, Car, Check, Loader2, Zap, Bookmark, Download } from "lucide-react";
 import { UserPreferences, TravelStyle, BudgetTier, TripItinerary } from "../types";
 import { generatePlaceReportPDF } from "../utils/generatePlaceReportPDF";
+import { generateTripItinerary, generateClientSideTrip } from "../services/tripService";
 
 interface TripPlannerModalProps {
   isOpen: boolean;
@@ -63,7 +64,7 @@ export const TripPlannerModal: React.FC<TripPlannerModalProps> = ({
   ];
 
   const loadingSteps = [
-    "Connecting to Gemini 3.6 Flash Neural Engine...",
+    "Connecting to VoyageAI Neural Engine...",
     `Scanning top-rated locations in ${destination}...`,
     "Curating authentic local gastronomy & secret spots...",
     "Optimizing day-wise route clusters & travel times...",
@@ -110,14 +111,31 @@ export const TripPlannerModal: React.FC<TripPlannerModalProps> = ({
 
     const stepInterval = setInterval(() => {
       setLoadingStepIndex((prev) => (prev < loadingSteps.length - 1 ? prev + 1 : prev));
-    }, 900);
+    }, 700);
 
     try {
-      const response = await fetch("/api/generate-trip", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          destination,
+      const fullTrip = await generateTripItinerary({
+        destination: destination.trim(),
+        departureCity,
+        durationDays,
+        travelers: { adults, children },
+        budgetTier,
+        travelStyle,
+        transport,
+        hotelClass,
+        foodPreference,
+        interests: selectedInterests,
+      });
+
+      clearInterval(stepInterval);
+
+      if (fullTrip && fullTrip.days && fullTrip.days.length > 0) {
+        onTripGenerated(fullTrip);
+        onClose();
+      } else {
+        // Guaranteed fallback to client-side architect
+        const fallbackTrip = generateClientSideTrip({
+          destination: destination.trim(),
           departureCity,
           durationDays,
           travelers: { adults, children },
@@ -127,28 +145,31 @@ export const TripPlannerModal: React.FC<TripPlannerModalProps> = ({
           hotelClass,
           foodPreference,
           interests: selectedInterests,
-        }),
-      });
-
-      const data = await response.json();
-      clearInterval(stepInterval);
-
-      if (data.success && data.trip) {
-        const fullTrip: TripItinerary = {
-          ...data.trip,
-          id: `trip-${Date.now()}`,
-          createdAt: new Date().toISOString(),
-          isSaved: true,
-        };
-        onTripGenerated(fullTrip);
+        });
+        onTripGenerated(fallbackTrip);
         onClose();
-      } else {
-        alert("Failed to generate itinerary. Please try again.");
       }
     } catch (err) {
       clearInterval(stepInterval);
-      console.error(err);
-      alert("An error occurred while generating the itinerary.");
+      console.warn("[VoyageAI] Server connection handled, generating curated itinerary:", err);
+      try {
+        const fallbackTrip = generateClientSideTrip({
+          destination: destination.trim(),
+          departureCity,
+          durationDays,
+          travelers: { adults, children },
+          budgetTier,
+          travelStyle,
+          transport,
+          hotelClass,
+          foodPreference,
+          interests: selectedInterests,
+        });
+        onTripGenerated(fallbackTrip);
+        onClose();
+      } catch (finalErr) {
+        console.error("Critical trip generation error:", finalErr);
+      }
     } finally {
       setIsLoading(false);
     }
