@@ -10,14 +10,20 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-// Security Headers Middleware (Protection against common vulnerabilities: XSS, clickjacking, MIME-sniffing)
-app.use((_req, res, next) => {
+// CORS & Security Headers Middleware (Full support for iframes, cross-origin previews & preflight)
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
   res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)");
   next();
 });
 
